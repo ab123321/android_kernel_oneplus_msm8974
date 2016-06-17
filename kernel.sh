@@ -7,33 +7,27 @@ blink_red='\033[05;31m'
 restore='\033[0m'
 
 clear
+cd `dirname "$0"`
 
 # Resources
 THREAD="-j$(grep -c ^processor /proc/cpuinfo)"
 KERNEL="zImage"
-DTBIMAGE="dtb"
+DTBIMAGE="dtb.img"
 DEFCONFIG="cyanogenmod_bacon_defconfig"
-
-# Kernel Details
-BASE_AK_VER="0.1"
-VER=".CM12.1"
-AK_VER="$BASE_AK_VER$VER"
+CMDLINE="console=ttyHSL0,115200,n8 androidboot.hardware=bacon user_debug=31 msm_rtb.filter=0x3F ehci-hcd.park=3 androidboot.bootdevice=msm_sdcc.1 androidboot.selinux=permissive"
 
 # Vars
-
-export CROSS_COMPILE=${HOME}/new/arm-eabi-4.9a15/bin/arm-eabi-
+export CROSS_COMPILE=${HOME}/tools/arm-linux-androideabi-4.9/bin/arm-linux-androideabi-
 export ARCH=arm
 export SUBARCH=arm
-export KBUILD_BUILD_USER=jgcaap
+export KBUILD_BUILD_USER=ab123321
 export KBUILD_BUILD_HOST=kernel
 
 # Paths
 KERNEL_DIR=`pwd`
-REPACK_DIR="${HOME}/new/anykernel"
-PATCH_DIR="${HOME}/new/anykernel"
-MODULES_DIR="${HOME}/new/modules"
-ZIP_MOVE="${HOME}/new/out"
-ZIMAGE_DIR="${HOME}/new/kernel/arch/arm/boot"
+REPACK_DIR="${HOME}/tools"
+MODULES_DIR="$REPACK_DIR/modules"
+ZIMAGE_DIR="$KERNEL_DIR/arch/arm/boot"
 
 # Functions
 function clean_all {
@@ -50,7 +44,7 @@ function make_kernel {
 		echo
 		make $DEFCONFIG
 		make $THREAD
-		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR
+		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/out
 }
 
 function make_modules {
@@ -59,16 +53,12 @@ function make_modules {
 }
 
 function make_dtb {
-		/home/jorge/new/anykernel/tools/dtbToolCM -2 -o /home/jorge/new/anykernel/dtb -s 2048 -p /home/jorge/new/kernel/scripts/dtc/ /home/jorge/new/kernel/arch/arm/boot/
+		$REPACK_DIR/dtbToolCM -2 -o $REPACK_DIR/out/dtb.img -s 2048 -p $KERNEL_DIR/scripts/dtc/ $KERNEL_DIR/arch/arm/boot/
 }
 
-function make_zip {
-		cd $REPACK_DIR
-		zip -r9 newKernel-CM12-"$VARIANT".zip *
-		mv newKernel-CM12-"$VARIANT".zip $ZIP_MOVE
-		cd $KERNEL_DIR
+function make_boot_image {
+		$REPACK_DIR/mkbootimg --kernel $REPACK_DIR/out/zImage --ramdisk $REPACK_DIR/boot.img-ramdisk.gz --cmdline "$CMDLINE" --base 0x00000000 --pagesize 2048 --ramdisk_offset 0x02000000 --tags_offset 0x01e00000 --dt $REPACK_DIR/out/dtb.img -o $REPACK_DIR/out/boot.img
 }
-
 
 DATE_START=$(date +"%s")
 
@@ -105,7 +95,7 @@ case "$dchoice" in
 		make_kernel
 		make_dtb
 		make_modules
-		make_zip
+		make_boot_image
 		break
 		;;
 	n|N )
@@ -122,12 +112,11 @@ done
 echo -e "${green}"
 echo "-------------------"
 echo "Build Completed in:"
-oecho "-------------------"
+echo "-------------------"
 echo -e "${restore}"
 
 DATE_END=$(date +"%s")
 DIFF=$(($DATE_END - $DATE_START))
 echo "Time: $(($DIFF / 60)) minute(s) and $(($DIFF % 60)) seconds."
 echo
-mv ~/new/out/newKernel-CM12-.zip ~/files/oneplusone/kernel/lz4/newKernel-CM13.0-3.74.zip
-#/etc/script/md5.sh
+
