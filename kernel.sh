@@ -15,7 +15,7 @@ KERNEL="zImage"
 DTBIMAGE="dtb.img"
 DEFCONFIG="cyanogenmod_bacon_defconfig"
 CMDLINE_EXT="androidboot.selinux=permissive"
-CMDLINE_BASE="console=ttyHSL0,115200,n8 androidboot.hardware=bacon user_debug=31 msm_rtb.filter=0x3F ehci-hcd.park=3 androidboot.bootdevice=msm_sdcc.1"
+CMDLINE_BASE="androidboot.hardware=bacon androidboot.bootdevice=msm_sdcc.1 ehci-hcd.park=3"
 CMDLINE="$CMDLINE_BASE $CMDLINE_EXT"
 
 # Vars
