@@ -59,7 +59,7 @@ function make_dtb {
 }
 
 function make_boot_image {
-		$REPACK_DIR/mkbootimg --kernel $REPACK_DIR/out/zImage --ramdisk $REPACK_DIR/boot.img-ramdisk.gz --cmdline "$CMDLINE" --base 0x00000000 --pagesize 2048 --ramdisk_offset 0x02000000 --tags_offset 0x01e00000 --dt $REPACK_DIR/out/dtb.img -o $REPACK_DIR/out/kernel-$(date +%Y%m%d).img
+		$REPACK_DIR/mkbootimg --kernel $REPACK_DIR/out/zImage --ramdisk $KERNEL_DIR/build_tools/ramdisk.gz --cmdline "$CMDLINE" --base 0x00000000 --pagesize 2048 --ramdisk_offset 0x02000000 --tags_offset 0x01e00000 --dt $REPACK_DIR/out/dtb.img -o $REPACK_DIR/out/kernel-$(date +%Y%m%d).img
 }
 
 DATE_START=$(date +"%s")
