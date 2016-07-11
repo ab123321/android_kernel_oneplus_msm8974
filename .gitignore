@@ -56,6 +56,7 @@ modules.builtin
 #
 !.gitignore
 !.mailmap
+!build_tools/*
 
 #
 # Generated include files
@@ -89,3 +90,4 @@ GTAGS
 # Generated source files
 smd_rpc_sym.c
 bswapsdi2.S
+kernel/hz.bc
