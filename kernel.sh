@@ -72,16 +72,6 @@ echo -e "${green}"
 echo "New Kernel Creation Script:"
 echo -e "${restore}"
 
-CAN_I_RUN_SUDO=$(whoami)
-#if ! [ ${CAN_I_RUN_SUDO} == "root" ]; then
-#	echo -e "${red}"
-#	echo "*** Problem detected ***"
-#	echo ""
-#	echo "You should run this script as root"
-#	echo -e "${restore}"
-#	exit
-#fi
-
 while read -p "Do you want to clean stuffs (y/n)? " cchoice
 do
 case "$cchoice" in
