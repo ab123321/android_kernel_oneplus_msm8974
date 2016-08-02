@@ -52,7 +52,7 @@ function patch_ramdisk {
 
 	for PATCHFILE in $KERNEL_DIR/build_tools/patches/*.patch
 	do
-		patch $(basename $PATCHFILE .patch) < $PATCHFILE
+		patch -s -p1 < $PATCHFILE
 	done
 
 	find . | cpio -o -R 0:0 -H newc | gzip > ../newramdisk.cpio.gz
