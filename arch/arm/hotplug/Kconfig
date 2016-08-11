@@ -1,4 +1,5 @@
 config INTELLI_PLUG
+        depends on POWERSUSPEND
         bool "Enable intelli-plug cpu hotplug driver"
         default n
         help
