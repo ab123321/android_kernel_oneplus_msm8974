@@ -130,6 +130,8 @@ int snd_jack_new(struct snd_card *card, const char *id, int type,
 
 	jack->input_dev->phys = "ALSA";
 
+	__set_bit(INPUT_PROP_NO_DUMMY_RELEASE, jack->input_dev->propbit);
+
 	jack->type = type;
 
 	for (i = 0; i < ARRAY_SIZE(jack_switch_types); i++)
