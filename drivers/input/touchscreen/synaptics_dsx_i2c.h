@@ -24,7 +24,17 @@
 #define SYNAPTICS_DSX_DRIVER_PRODUCT (SYNAPTICS_DS4 | SYNAPTICS_DS5)
 #define SYNAPTICS_DSX_DRIVER_VERSION 0x1016
 
+#include <linux/version.h>
+
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 38))
+#define KERNEL_ABOVE_2_6_38
+#endif
+
+#ifdef KERNEL_ABOVE_2_6_38
 #define sstrtoul(...) kstrtoul(__VA_ARGS__)
+#else
+#define sstrtoul(...) strict_strtoul(__VA_ARGS__)
+#endif
 
 #define PDT_PROPS (0X00EF)
 #define PDT_START (0x00E9)
@@ -61,14 +71,13 @@
 #define MASK_2BIT 0x03
 #define MASK_1BIT 0x01
 
-enum {
-	TP_VENDOR_WINTEK = 1,
-	TP_VENDOR_TPK,
-	TP_VENDOR_TRULY,
-	TP_VENDOR_YOUNGFAST,
-};
 
-#define TP_TYPE_MAX	2	//we only use wintek and tpk now.
+#define TP_VENDOR_WINTEK	1	//胜华
+#define TP_VENDOR_TPK		2	//TPK
+#define TP_VENDOR_TRULY		3	//信利
+#define TP_VENDOR_YOUNGFAST 4   //洋华
+
+#define TP_TYPE_MAX		2	//we only use wintek and tpk now.
 
 enum LCD_TYPE {
 	LCD_VENDOR_JDI,
@@ -191,6 +200,8 @@ struct synaptics_rmi4_device_info {
  * @sensor_max_x: sensor maximum x value
  * @sensor_max_y: sensor maximum y value
  * @irq_enabled: flag for indicating interrupt enable status
+ * @fingers_on_2d: flag to indicate presence of fingers in 2d area
+ * @sensor_sleep: flag to indicate sleep state of sensor
  * @wait: wait queue for touch data polling in interrupt thread
  * @i2c_read: pointer to i2c read function
  * @i2c_write: pointer to i2c write function
@@ -205,6 +216,7 @@ struct synaptics_rmi4_data {
 	struct mutex rmi4_reset_mutex;
 	struct mutex rmi4_io_ctrl_mutex;
 	unsigned char current_page;
+	unsigned char button_0d_enabled;
 	unsigned char full_pm_cycle;
 	unsigned char num_of_rx;
 	unsigned char num_of_tx;
@@ -219,19 +231,25 @@ struct synaptics_rmi4_data {
 	unsigned short f01_cmd_base_addr;
 	unsigned short f01_ctrl_base_addr;
 	unsigned short f01_data_base_addr;
+	unsigned short holster_mode_control_addr;
+	unsigned short holster_mode_open_or_close;
 	unsigned int firmware_id;
 	int irq;
 	int sensor_max_x;
 	int sensor_max_y;
 	bool flash_prog_mode;
+	bool irq_enabled;
+	bool touch_stopped;
+	bool fingers_on_2d;
 	bool sensor_sleep;
 	bool stay_awake;
+	bool staying_awake;
 	int (*i2c_read)(struct synaptics_rmi4_data *pdata, unsigned short addr,
 			unsigned char *data, unsigned short length);
 	int (*i2c_write)(struct synaptics_rmi4_data *pdata, unsigned short addr,
 			unsigned char *data, unsigned short length);
 	int (*irq_enable)(struct synaptics_rmi4_data *rmi4_data, bool enable);
-	void (*reset_device)(struct synaptics_rmi4_data *rmi4_data,
+	int (*reset_device)(struct synaptics_rmi4_data *rmi4_data,
 			unsigned short f01_cmd_base_addr);
 
 	uint32_t id_gpio;
@@ -251,27 +269,32 @@ struct synaptics_rmi4_data {
 	uint32_t vendor_id;
 	uint32_t image_cid;
 	uint32_t device_cid;
+	unsigned short f54_query_base_addr;
+	unsigned short f54_cmd_base_addr;
+	unsigned short f54_ctrl_base_addr;
+	unsigned short f54_data_base_addr;
+	unsigned char gesturemode;
 	unsigned int old_status;
-	unsigned int reset_count;
+	unsigned int reset_count; //for reset count
+	unsigned short points[2*7];
+	struct mutex ops_lock;
 	struct notifier_block fb_notif;
 	atomic_t syna_use_gesture;
 	atomic_t double_tap_enable;
 	atomic_t camera_enable;
 	atomic_t music_enable;
 	atomic_t flashlight_enable;
+	unsigned char glove_enable;  //glove mode
+	unsigned char pdoze_enable;  //pdoze mode
+	unsigned char smartcover_enable;  //smartcover mode
+	unsigned char pdoze_status;
 	atomic_t keypad_enable;
-	atomic_t irq_enabled;
-	atomic_t sensor_awake;
-	atomic_t ts_awake;
-	atomic_t resume_suspend;
 	unsigned char bcontinue;
-	struct workqueue_struct *syna_pm_wq;
-	struct work_struct syna_pm_work;
-	struct wakeup_source syna_isr_ws;
-	spinlock_t isr_lock;
-	bool i2c_awake;
-	struct completion i2c_resume;
-	u64 last_gesture_time;
+	struct workqueue_struct *reportqueue;  //for work queue
+	struct work_struct reportwork;
+
+	bool suspended;
+	struct work_struct init_work;
 };
 
 enum exp_fn {
@@ -295,6 +318,8 @@ void synaptics_rmi4_new_function(enum exp_fn fn_type, bool insert,
 		void (*func_attn)(struct synaptics_rmi4_data *rmi4_data,
 				unsigned char intr_mask));
 
+int synaptics_fw_updater(unsigned char *fw_data);
+
 static inline ssize_t synaptics_rmi4_show_error(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -315,4 +340,11 @@ static inline void batohs(unsigned short *dest, unsigned char *src)
 {
 	*dest = src[1] * 0x100 + src[0];
 }
+
+static inline void hstoba(unsigned char *dest, unsigned short src)
+{
+	dest[0] = src % 0x100;
+	dest[1] = src / 0x100;
+}
+
 #endif
