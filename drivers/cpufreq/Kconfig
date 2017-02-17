@@ -126,6 +126,12 @@ config CPU_FREQ_DEFAULT_GOV_BLU_ACTIVE
 	  loading your cpufreq low-level hardware driver, using the
 	  'interactive' governor for latency-sensitive workloads.
 
+config CPU_FREQ_DEFAULT_GOV_LIONHEART
+        bool "lionheart"
+        select CPU_FREQ_GOV_LIONHEART
+        help
+        Use the CPUFreq governor 'lionheart' as default.
+
 endchoice
 
 config CPU_FREQ_GOV_PERFORMANCE
@@ -237,6 +243,13 @@ config CPU_FREQ_GOV_BLU_ACTIVE
 	  module will be called cpufreq_blu_active.
 
 	  If in doubt, say N.
+
+config CPU_FREQ_GOV_LIONHEART
+        tristate "'lionheart' cpufreq governor"
+        depends on CPU_FREQ
+        help
+        lionheart' - a "smart" optimized governor!
+        If in doubt, say N.
 
 config CPU_BOOST
 	tristate "Event base short term CPU freq boost"
