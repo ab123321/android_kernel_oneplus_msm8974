@@ -43,7 +43,7 @@ static struct thermal_info {
 /* throttle points in MHz */
 enum thermal_freqs {
 	FREQ_NOTE_7		 = 652800,
-	FREQ_HELL		 = 960000,
+	FREQ_HELL		 = 883200,
 	FREQ_VERY_HOT		 = 1036800,
 	FREQ_HOT		 = 1267200,
 	FREQ_WARM		 = 1497600,
@@ -53,25 +53,16 @@ static struct msm_thermal_data msm_thermal_info;
 static struct workqueue_struct *thermal_wq;
 static struct delayed_work check_temp_work;
 
-static void cpu_offline_wrapper(int cpu)
-{
-        if (cpu_online(cpu))
-		cpu_down(cpu);
-}
-
-static void __ref cpu_online_wrapper(int cpu)
-{
-        if (!cpu_online(cpu))
-		cpu_up(cpu);
-}
-
 static int msm_thermal_cpufreq_callback(struct notifier_block *nfb,
 		unsigned long event, void *data)
 {
 	struct cpufreq_policy *policy = data;
 
-	if (event == CPUFREQ_INCOMPATIBLE && info.pending_change)
+	if (event == CPUFREQ_INCOMPATIBLE && info.pending_change) {
 		cpufreq_verify_within_limits(policy, 0, info.limited_max_freq);
+		pr_info_ratelimited("%s: Setting cpu%d max frequency to %u\n",
+                                KBUILD_MODNAME, policy->cpu, info.limited_max_freq);
+	}
 
 	return NOTIFY_OK;
 }
@@ -90,25 +81,10 @@ static void limit_cpu_freqs(uint32_t max_freq)
 	info.limited_max_freq = max_freq;
 	info.pending_change = true;
 
-	pr_info_ratelimited("%s: Setting cpu max frequency to %u\n",
-		KBUILD_MODNAME, max_freq);
-
-	if (num_online_cpus() < NR_CPUS) {
-		if (max_freq > FREQ_NOTE_7)
-			cpu_online_wrapper(2);
-		if (max_freq > FREQ_HELL)
-			cpu_online_wrapper(3);
-	}
-
 	get_online_cpus();
 	for_each_online_cpu(cpu)
 		cpufreq_update_policy(cpu);
 	put_online_cpus();
-
-	if (max_freq == FREQ_HELL)
-		cpu_offline_wrapper(3);
-	else if (max_freq == FREQ_NOTE_7)
-		cpu_offline_wrapper(2);
 
 	info.pending_change = false;
 }
@@ -144,8 +120,6 @@ static void check_temp(struct work_struct *work)
 			case FREQ_HELL:
 				freq = FREQ_NOTE_7;
 				break;
-			case FREQ_NOTE_7:
-				break;
 			default:
 				freq = FREQ_WARM;
 		}
@@ -159,7 +133,7 @@ static void check_temp(struct work_struct *work)
 	}
 
 reschedule:
-	queue_delayed_work(thermal_wq, &check_temp_work, msecs_to_jiffies(250));
+	queue_delayed_work(thermal_wq, &check_temp_work, msecs_to_jiffies(100));
 }
 
 static int __devinit msm_thermal_dev_probe(struct platform_device *pdev)
