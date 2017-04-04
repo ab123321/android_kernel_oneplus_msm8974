@@ -18,7 +18,7 @@ config MACH_FIND7
 	  Support for the Find7/Find7S variant
 
 config MACH_FIND7OP
-	depends on MACH_MSM8974_14001
+	select MACH_MSM8974_14001
 	select MACH_OPPO_MSM8974
 	bool "Oneplus"
 	help
@@ -26,7 +26,6 @@ config MACH_FIND7OP
 
 config MACH_MSM8974_14001
 	bool "OnePlus One"
-	select MACH_OPPO
  	help
 	  Support for the OnePlus One (bacon)
 
